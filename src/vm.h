@@ -9,9 +9,17 @@
 
 typedef struct {
     Chunk* chunk;
+    uint8_t *ip;
 } VM;
+
+typedef enum {
+    OK,
+    COMPILE_ERROR,
+    RUNTIME_ERROR
+} InterpretResult;
 
 void initVM();
 void freeVM();
+InterpretResult interpret(Chunk* chunk);
 
 #endif //CSCRIPTY_VM_H
