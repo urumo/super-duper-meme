@@ -8,7 +8,7 @@
 #include "common.h"
 
 typedef enum {
-    RETURN
+    OP_RETURN
 } OpCode;
 
 typedef struct {
