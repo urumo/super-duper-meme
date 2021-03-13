@@ -19,3 +19,8 @@ void initScanner(const char *source) {
     scanner.current = source;
     scanner.line = 1;
 }
+
+Token scanToken() {
+    Token result;
+    return result;
+}
