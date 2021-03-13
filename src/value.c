@@ -19,7 +19,7 @@ void writeValueArray(ValueArray *array, Value value) {
         array->values = GROW_ARRAY(Value, array->values, oldCap, array->capacity);
     }
     array->values[array->count] = value;
-    array->count += 1;
+    array->count++;
 }
 
 void freeValueArray(ValueArray *array) {

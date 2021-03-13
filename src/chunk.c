@@ -22,7 +22,7 @@ void writeChunk(Chunk *chunk, uint8_t byte, int line) {
     }
     chunk->lines[chunk->count] = line;
     chunk->code[chunk->count] = byte;
-    chunk->count += 1;
+    chunk->count++;
 }
 
 void freeChunk(Chunk *chunk) {

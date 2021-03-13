@@ -84,7 +84,7 @@ InterpretResult interpret(const char *source) {
 
 void push(Value value) {
     *vm.stackTop = value;
-    vm.stackTop += 1;
+    vm.stackTop++;
 }
 
 Value pop() {
