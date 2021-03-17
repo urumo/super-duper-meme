@@ -57,6 +57,12 @@ int disassembleInstruction(Chunk *chunk, int offset) {
             return simpleInstruction("true", offset);
         case OP_FALSE:
             return simpleInstruction("false", offset);
+        case OP_EQUAL:
+            return simpleInstruction("eql", offset);
+        case OP_GREATER:
+            return simpleInstruction("cmpg", offset);
+        case OP_LESS:
+            return simpleInstruction("cmpl", offset);
         default: {
             printf("Unknown opcode %d\n", instruction);
             return offset + 1;

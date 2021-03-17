@@ -140,6 +140,24 @@ static void binary() {
     parsePrecedence((Precedence) (rule->precedence + 1));
 
     switch (operatorType) {
+        case T_NE:
+            emitBytes(OP_EQUAL, OP_NOT);
+            break;
+        case T_EQ:
+            emitByte(OP_EQUAL);
+            break;
+        case T_GT:
+            emitByte(OP_GREATER);
+            break;
+        case T_GTE:
+            emitBytes(OP_LESS, OP_NOT);
+            break;
+        case T_LT:
+            emitByte(OP_LESS);
+            break;
+        case T_LTE:
+            emitBytes(OP_GREATER, OP_NOT);
+            break;
         case T_PLUS:
             emitByte(OP_ADD);
             break;
@@ -211,13 +229,13 @@ ParseRule rules[] = {
         [T_SLASH]             = {NULL, binary, PRODUCT},
         [T_ASTERISK]          = {NULL, binary, PRODUCT},
         [T_BANG]              = {unary, NULL, NONE},
-        [T_NE]                = {NULL, NULL, NONE},
+        [T_NE]                = {NULL, binary, EQUALITY},
         [T_ASSIGN]            = {NULL, NULL, NONE},
-        [T_EQ]                = {NULL, NULL, NONE},
-        [T_GT]                = {NULL, NULL, NONE},
-        [T_GTE]               = {NULL, NULL, NONE},
-        [T_LT]                = {NULL, NULL, NONE},
-        [T_LTE]               = {NULL, NULL, NONE},
+        [T_EQ]                = {NULL, binary, EQUALITY},
+        [T_GT]                = {NULL, binary, COMPARISON},
+        [T_GTE]               = {NULL, binary, COMPARISON},
+        [T_LT]                = {NULL, binary, COMPARISON},
+        [T_LTE]               = {NULL, binary, COMPARISON},
         [T_IDENT]             = {NULL, NULL, NONE},
         [T_STRING]            = {NULL, NULL, NONE},
         [T_NUMBER]            = {number, NULL, NONE},

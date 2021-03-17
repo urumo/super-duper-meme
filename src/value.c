@@ -40,3 +40,17 @@ void printValue(Value value) {
             break;
     }
 }
+
+bool valuesEqual(Value a, Value b) {
+    if (a.type != b.type) return false;
+    switch (a.type) {
+        case V_BOOL:
+            return AS_BOOL(a) == AS_BOOL(b);
+        case V_NULL:
+            return true;
+        case V_NUM:
+            return AS_NUM(a) == AS_NUM(b);
+        default:
+            return false;
+    }
+}
