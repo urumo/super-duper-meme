@@ -3,14 +3,30 @@
 //
 
 #include <stdarg.h>
+#include <string.h>
 #include <stdio.h>
 #include "vm.h"
 #include "debug.h"
 #include "compiler.h"
+#include "object.h"
+#include "memory.h"
 
 VM vm;
 
 static bool isFalsey(Value value);
+
+static void concatenate() {
+    ObjString *b = AS_STRING(pop());
+    ObjString *a = AS_STRING(pop());
+
+    int length = a->length + b->length;
+    char *chars = ALLOCATE(char, length + 1);
+    memcpy(chars, a->chars, a->length);
+    memcpy(chars + a->length, b->chars, b->length);
+    chars[length] = '\0';
+    ObjString *result = takeString(chars, length);
+    push(OBJ_VAL(result));
+}
 
 static void resetStack() {
     vm.stackTop = vm.stack;
@@ -77,9 +93,19 @@ static InterpretResult run() {
             case OP_LESS:
                 BINARY_OP(BOOL_VAL, <);
                 break;
-            case OP_ADD:
-                BINARY_OP(NUM_VAL, +);
+            case OP_ADD: {
+                if (IS_STRING(peek(0)) && IS_STRING(peek(1))) {
+                    concatenate();
+                } else if (IS_NUM(peek(0)) && IS_NUM(peek(1))) {
+                    double b = AS_NUM(pop());
+                    double a = AS_NUM(pop());
+                    push(NUM_VAL(a + b));
+                } else {
+                    runtimeError("Operand type mismatch.");
+                    return RUNTIME_ERROR;
+                }
                 break;
+            }
             case OP_SUB:
                 BINARY_OP(NUM_VAL, -);
                 break;
