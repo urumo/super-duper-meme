@@ -2,6 +2,7 @@
 // Created by aramh on 3/13/2021.
 //
 
+#include <stdarg.h>
 #include <stdio.h>
 #include "vm.h"
 #include "debug.h"
@@ -13,6 +14,19 @@ static void resetStack() {
     vm.stackTop = vm.stack;
 }
 
+static void runtimeError(const char *format, ...) {
+    va_list args;
+            va_start(args, format);
+    vfprintf(stderr, format, args);
+            va_end(args);
+    fputs("\n", stderr);
+
+    size_t instruction = vm.ip - vm.chunk->code - 1;
+    int line = vm.chunk->lines[instruction];
+    fprintf(stderr, "[line %d] in code\n", line);
+    resetStack();
+}
+
 void initVM() {
     resetStack();
 }
@@ -21,14 +35,20 @@ void freeVM() {
 
 }
 
+static Value peek(int distance);
+
 static InterpretResult run() {
 #define READ_BYTE() (*vm.ip++)
 #define READ_CONSTANT() (vm.chunk->constants.values[READ_BYTE()])
-#define BINARY_OP(op)   \
-    do {                \
-      double b = pop(); \
-      double a = pop(); \
-      push(a op b);     \
+#define BINARY_OP(valueType, op)                      \
+    do {                                              \
+        if(!IS_NUM(peek(0)) || !IS_NUM(peek(1))) {    \
+            runtimeError("Operand must be a number"); \
+            return RUNTIME_ERROR;                     \
+        }                                             \
+        double b = AS_NUM(pop());                     \
+        double a = AS_NUM(pop());                     \
+        push(valueType(a op b));                      \
     } while(false)
 
     for (;;) {
@@ -50,19 +70,23 @@ static InterpretResult run() {
                 break;
             }
             case OP_ADD:
-                BINARY_OP(+);
+                BINARY_OP(NUM_VAL, +);
                 break;
             case OP_SUB:
-                BINARY_OP(-);
+                BINARY_OP(NUM_VAL, -);
                 break;
             case OP_MUL:
-                BINARY_OP(*);
+                BINARY_OP(NUM_VAL, *);
                 break;
             case OP_DIV:
-                BINARY_OP(/);
+                BINARY_OP(NUM_VAL, /);
                 break;
             case OP_NEGATE: {
-                push(-pop());
+                if (!IS_NUM(peek(0))) {
+                    runtimeError("Operand must be a number");
+                    return RUNTIME_ERROR;
+                }
+                push(NUM_VAL(-AS_NUM(pop())));
                 break;
             }
             case OP_RETURN: {
@@ -100,4 +124,8 @@ void push(Value value) {
 Value pop() {
     vm.stackTop -= 1;
     return *vm.stackTop;
+}
+
+static Value peek(int distance) {
+    return vm.stackTop[-1 - distance];
 }
