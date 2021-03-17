@@ -155,6 +155,22 @@ static void binary() {
     }
 }
 
+static void literal() {
+    switch (parser.previous.type) {
+        case T_FALSE:
+            emitByte(OP_FALSE);
+            break;
+        case T_TRUE:
+            emitByte(OP_TRUE);
+            break;
+        case T_NULL:
+            emitByte(OP_NULL);
+            break;
+        default:
+            return;
+    }
+}
+
 static void grouping() {
     expression();
     consume(T_RPAREN, "`)` is expected after expression.");
@@ -171,6 +187,9 @@ static void unary() {
     parsePrecedence(PREFIX);
 
     switch (operatorType) {
+        case T_BANG:
+            emitByte(OP_NOT);
+            break;
         case T_MINUS:
             emitByte(OP_NEGATE);
             break;
@@ -191,7 +210,7 @@ ParseRule rules[] = {
         [T_SEMICOLON]         = {NULL, NULL, NONE},
         [T_SLASH]             = {NULL, binary, PRODUCT},
         [T_ASTERISK]          = {NULL, binary, PRODUCT},
-        [T_BANG]              = {NULL, NULL, NONE},
+        [T_BANG]              = {unary, NULL, NONE},
         [T_NE]                = {NULL, NULL, NONE},
         [T_ASSIGN]            = {NULL, NULL, NONE},
         [T_EQ]                = {NULL, NULL, NONE},
@@ -205,17 +224,17 @@ ParseRule rules[] = {
         [T_AND]               = {NULL, NULL, NONE},
         [T_CLASS]             = {NULL, NULL, NONE},
         [T_ELSE]              = {NULL, NULL, NONE},
-        [T_FALSE]             = {NULL, NULL, NONE},
+        [T_FALSE]             = {literal, NULL, NONE},
         [T_FOR]               = {NULL, NULL, NONE},
         [T_FUN]               = {NULL, NULL, NONE},
         [T_IF]                = {NULL, NULL, NONE},
-        [T_NULL]              = {NULL, NULL, NONE},
+        [T_NULL]              = {literal, NULL, NONE},
         [T_OR]                = {NULL, NULL, NONE},
         [T_PUTS]              = {NULL, NULL, NONE},
         [T_RETURN]            = {NULL, NULL, NONE},
         [T_SUPER]             = {NULL, NULL, NONE},
         [T_THIS]              = {NULL, NULL, NONE},
-        [T_TRUE]              = {NULL, NULL, NONE},
+        [T_TRUE]              = {literal, NULL, NONE},
         [T_LET]               = {NULL, NULL, NONE},
         [T_WHILE]             = {NULL, NULL, NONE},
         [T_ERR]               = {NULL, NULL, NONE},
