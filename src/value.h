@@ -7,10 +7,14 @@
 
 #include "common.h"
 
+typedef struct Obj Obj;
+typedef struct ObjString ObjString;
+
 typedef enum {
     V_BOOL,
     V_NULL,
     V_NUM,
+    V_OBJ,
 } ValueType;
 
 typedef struct {
@@ -18,19 +22,23 @@ typedef struct {
     union {
         bool boolean;
         double number;
+        Obj *obj;
     } as;
 } Value;
 
 #define IS_BOOL(val) ((val).type == V_BOOL)
 #define IS_NULL(val) ((val).type == V_NULL)
 #define IS_NUM(val)  ((val).type == V_NUM)
+#define IS_OBJ(val)  ((val).type == V_OBJ)
 
+#define AS_OBJ(val)    ((val).as.obj)
 #define AS_BOOL(val)   ((val).as.boolean)
 #define AS_NUM(val)    ((val).as.number)
 
-#define BOOL_VAL(val)  ((Value){V_BOOL, {.boolean = val}})
-#define NULL_VAL       ((Value){V_NULL, {.number = 0}})
-#define NUM_VAL(val)   ((Value){V_NUM, {.number = val}})
+#define BOOL_VAL(val)    ((Value){V_BOOL, {.boolean = val}})
+#define NULL_VAL         ((Value){V_NULL, {.number = 0}})
+#define NUM_VAL(val)     ((Value){V_NUM, {.number = val}})
+#define OBJ_VAL(object)  ((Value){V_OBJ, {.obj = (Obj*)object}})
 
 typedef struct {
     int capacity;

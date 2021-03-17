@@ -7,6 +7,7 @@
 #include "common.h"
 #include "compiler.h"
 #include "scanner.h"
+#include "object.h"
 
 #ifdef DEBUG_PRINT_CODE
 
@@ -199,6 +200,10 @@ static void number() {
     emitConstant(NUM_VAL(value));
 }
 
+static void string() {
+    emitConstant(OBJ_VAL(copyString(parser.previous.start + 1, parser.previous.length - 2)));
+}
+
 static void unary() {
     TokenType operatorType = parser.previous.type;
 
@@ -237,7 +242,7 @@ ParseRule rules[] = {
         [T_LT]                = {NULL, binary, COMPARISON},
         [T_LTE]               = {NULL, binary, COMPARISON},
         [T_IDENT]             = {NULL, NULL, NONE},
-        [T_STRING]            = {NULL, NULL, NONE},
+        [T_STRING]            = {string, NULL, NONE},
         [T_NUMBER]            = {number, NULL, NONE},
         [T_AND]               = {NULL, NULL, NONE},
         [T_CLASS]             = {NULL, NULL, NONE},
