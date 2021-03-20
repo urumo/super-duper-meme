@@ -144,9 +144,12 @@ static InterpretResult run() {
                 push(NUM_VAL(-AS_NUM(pop())));
                 break;
             }
-            case OP_RETURN: {
+            case OP_PUTS: {
                 printValue(pop());
                 printf("\n");
+                break;
+            }
+            case OP_RETURN: {
                 return OK;
             }
         }
