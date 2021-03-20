@@ -302,6 +302,12 @@ static void expression() {
     parsePrecedence(ASSIGNMENT);
 }
 
+static void expressionStatement() {
+    expression();
+    consume(T_SEMICOLON, "`;` expected after expression.");
+    emitByte(OP_POP);
+}
+
 static void printStatement() {
     expression();
     consume(T_SEMICOLON, "`;` expected after value.");
@@ -315,6 +321,8 @@ static void declaration() {
 static void statement() {
     if (match(T_PUTS)) {
         printStatement();
+    } else {
+        expressionStatement();
     }
 }
 
