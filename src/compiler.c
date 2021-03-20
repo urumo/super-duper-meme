@@ -314,8 +314,32 @@ static void printStatement() {
     emitByte(OP_PUTS);
 }
 
+static void synchronize() {
+    parser.panicMode = false;
+
+    while (parser.current.type != T_EOF) {
+        if (parser.previous.type == T_SEMICOLON) return;
+
+        switch (parser.current.type) {
+            case T_CLASS:
+            case T_FUN:
+            case T_LET:
+            case T_FOR:
+            case T_IF:
+            case T_WHILE:
+            case T_PUTS:
+            case T_RETURN:
+                return;
+            default:;
+        }
+        advance();
+    }
+}
+
 static void declaration() {
     statement();
+
+    if (parser.panicMode) synchronize();
 }
 
 static void statement() {
