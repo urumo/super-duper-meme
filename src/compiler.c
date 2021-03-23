@@ -187,9 +187,22 @@ static uint8_t identifierConstant(Token *name) {
     return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
 }
 
-static bool identifiersEquel(Token *a, Token *b) {
+static bool identifiersEqual(Token *a, Token *b) {
     if (a->length != b->length) return false;
     return memcmp(a->start, b->start, a->length) == 0;
+}
+
+static int resolveLocal(Compiler *compiler, Token *name) {
+    for (int i = compiler->localCount - 1; i >= 0; i--) {
+        Local *local = &compiler->locals[i];
+        if (identifiersEqual(name, &local->name)) {
+            if (local->depth == -1) {
+                error("Can't initialize a variable with itself");
+            }
+            return i;
+        }
+    }
+    return -1;
 }
 
 static void addLocal(Token name) {
@@ -199,7 +212,7 @@ static void addLocal(Token name) {
     }
     Local *local = &current->locals[current->localCount++];
     local->name = name;
-    local->depth = current->scopeDepth;
+    local->depth = -1;
 }
 
 static void declareVariable() {
@@ -211,7 +224,7 @@ static void declareVariable() {
             break;
         }
 
-        if (identifiersEquel(name, &local->name)) {
+        if (identifiersEqual(name, &local->name)) {
             error("Variable with this name is already declared in this scope");
         }
     }
@@ -223,6 +236,10 @@ static uint8_t parseVariable(const char *errorMessage) {
     declareVariable();
     if (current->scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
+}
+
+static void markInitialized() {
+    current->locals[current->localCount - 1].depth = current->scopeDepth;
 }
 
 static void binary(bool canAssign) {
@@ -296,12 +313,21 @@ static void string(bool canAssign) {
 }
 
 static void namedVariable(Token name, bool canAssign) {
-    uint8_t arg = identifierConstant(&name);
+    uint8_t getOp, setOp;
+    int arg = resolveLocal(current, &name);
+    if (arg != -1) {
+        getOp = OP_GET_LOCAL;
+        setOp = OP_SET_LOCAL;
+    } else {
+        arg = identifierConstant(&name);
+        getOp = OP_GET_GLOBAL;
+        setOp = OP_SET_GLOBAL;
+    }
     if (canAssign && match(T_ASSIGN)) {
         expression();
-        emitBytes(OP_SET_GLOBAL, arg);
+        emitBytes(setOp, (uint8_t) arg);
     } else {
-        emitBytes(OP_GET_GLOBAL, arg);
+        emitBytes(getOp, (uint8_t) arg);
     }
 }
 
@@ -392,7 +418,10 @@ static void parsePrecedence(Precedence precedence) {
 }
 
 static void defineVariable(uint8_t global) {
-    if (current->scopeDepth > 0) return;
+    if (current->scopeDepth > 0) {
+        markInitialized();
+        return;
+    }
     emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
