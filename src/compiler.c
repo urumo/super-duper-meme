@@ -4,6 +4,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "common.h"
 #include "compiler.h"
 #include "scanner.h"
@@ -44,7 +45,20 @@ typedef struct {
     Precedence precedence;
 } ParseRule;
 
+typedef struct {
+    Token name;
+    int depth;
+} Local;
+
+typedef struct {
+    Local locals[UINT8_COUNT];
+    int localCount;
+    int scopeDepth;
+} Compiler;
+
 Parser parser;
+
+Compiler *current = NULL;
 
 Chunk *compilingChunk;
 
@@ -129,6 +143,12 @@ static void emitConstant(Value value) {
     emitBytes(OP_CONSTANT, makeConstant(value));
 }
 
+static void initCompiler(Compiler *compiler) {
+    compiler->localCount = 0;
+    compiler->scopeDepth = 0;
+    current = compiler;
+}
+
 static void endCompiler() {
     emitReturn();
 #ifdef DEBUG_PRINT_CODE
@@ -136,6 +156,21 @@ static void endCompiler() {
         disassembleChunk(currentChunk(), "code");
     }
 #endif
+}
+
+static void beginScope() {
+    current->scopeDepth++;
+}
+
+static void endScope() {
+    current->scopeDepth--;
+
+    while (current->localCount > 0 &&
+           current->locals[current->localCount - 1].depth >
+           current->scopeDepth) {
+        emitByte(OP_POP);
+        current->localCount--;
+    }
 }
 
 static void expression();
@@ -152,8 +187,41 @@ static uint8_t identifierConstant(Token *name) {
     return makeConstant(OBJ_VAL(copyString(name->start, name->length)));
 }
 
+static bool identifiersEquel(Token *a, Token *b) {
+    if (a->length != b->length) return false;
+    return memcmp(a->start, b->start, a->length) == 0;
+}
+
+static void addLocal(Token name) {
+    if (current->localCount == UINT8_COUNT) {
+        error("Too many variables in one scope");
+        return;
+    }
+    Local *local = &current->locals[current->localCount++];
+    local->name = name;
+    local->depth = current->scopeDepth;
+}
+
+static void declareVariable() {
+    if (current->scopeDepth == 0) return;
+    Token *name = &parser.previous;
+    for (int i = current->localCount - 1; i >= 0; i--) {
+        Local *local = &current->locals[i];
+        if (local->depth != -1 && local->depth < current->scopeDepth) {
+            break;
+        }
+
+        if (identifiersEquel(name, &local->name)) {
+            error("Variable with this name is already declared in this scope");
+        }
+    }
+    addLocal(*name);
+}
+
 static uint8_t parseVariable(const char *errorMessage) {
     consume(T_IDENT, errorMessage);
+    declareVariable();
+    if (current->scopeDepth > 0) return 0;
     return identifierConstant(&parser.previous);
 }
 
@@ -324,6 +392,7 @@ static void parsePrecedence(Precedence precedence) {
 }
 
 static void defineVariable(uint8_t global) {
+    if (current->scopeDepth > 0) return;
     emitBytes(OP_DEFINE_GLOBAL, global);
 }
 
@@ -333,6 +402,13 @@ static ParseRule *getRule(TokenType type) {
 
 static void expression() {
     parsePrecedence(ASSIGNMENT);
+}
+
+static void block() {
+    while (!check(T_RBRACE) && !check(T_EOF)) {
+        declaration();
+    }
+    consume(T_RBRACE, "`}` expected at the end of a block");
 }
 
 static void varDeclaration() {
@@ -395,6 +471,10 @@ static void declaration() {
 static void statement() {
     if (match(T_PUTS)) {
         printStatement();
+    } else if (match(T_LBRACE)) {
+        beginScope();
+        block();
+        endScope();
     } else {
         expressionStatement();
     }
@@ -402,6 +482,8 @@ static void statement() {
 
 bool compile(const char *source, Chunk *chunk) {
     initScanner(source);
+    Compiler compiler;
+    initCompiler(&compiler);
     compilingChunk = chunk;
     parser.hadError = false;
     parser.panicMode = false;
