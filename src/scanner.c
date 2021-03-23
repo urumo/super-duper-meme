@@ -152,6 +152,10 @@ static TokenType identifierType() {
             return checkKeyword(1, 2, "et", T_LET);
         case 'w':
             return checkKeyword(1, 4, "hile", T_WHILE);
+        case '&':
+            return checkKeyword(1, 1, "&", T_AND);
+        case '|':
+            return checkKeyword(1, 1, "|", T_OR);
     }
     return T_IDENT;
 }
