@@ -152,10 +152,6 @@ static TokenType identifierType() {
             return checkKeyword(1, 2, "et", T_LET);
         case 'w':
             return checkKeyword(1, 4, "hile", T_WHILE);
-        case '&':
-            return checkKeyword(1, 1, "&", T_AND);
-        case '|':
-            return checkKeyword(1, 1, "|", T_OR);
     }
     return T_IDENT;
 }
@@ -216,6 +212,12 @@ Token scanToken() {
             return makeToken(T_SLASH);
         case '*':
             return makeToken(T_ASTERISK);
+        case '&': {
+            return match('&') ? makeToken(T_AND) : errorToken("Unexpected Character.");
+        }
+        case '|': {
+            return match('|') ? makeToken(T_OR) : errorToken("Unexpected Character.");
+        }
         case '!':
             return makeToken(
                     match('=') ? T_NE : T_BANG);
